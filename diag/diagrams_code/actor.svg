@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 100" width="50" height="100">
+  <!-- Head -->
+  <circle cx="25" cy="15" r="10" stroke="black" stroke-width="3" fill="none"/>
+  <!-- Body -->
+  <line x1="25" y1="25" x2="25" y2="60" stroke="black" stroke-width="3"/>
+  <!-- Arms -->
+  <line x1="5" y1="35" x2="45" y2="35" stroke="black" stroke-width="3"/>
+  <!-- Legs -->
+  <line x1="25" y1="60" x2="5" y2="90" stroke="black" stroke-width="3"/>
+  <line x1="25" y1="60" x2="45" y2="90" stroke="black" stroke-width="3"/>
+</svg>

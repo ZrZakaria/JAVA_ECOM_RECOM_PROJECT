@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sequence Diagram - Product Recommendation System</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .diagram-section {
+            margin-bottom: 50px;
+        }
+
+        .diagram-section h2 {
+            color: #555;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>⏱️ Sequence Diagrams - Product Recommendation System</h1>
+        <p class="description">Interaction flows between system components</p>
+
+        <!-- Sequence 1: Data Scraping -->
+        <div class="diagram-section">
+            <h2>1. Data Scraping Sequence</h2>
+            <div class="mermaid">
+                sequenceDiagram
+                autonumber
+                actor Admin as Administrator
+                participant Main as Main
+                participant Scraper as CdiscountScrapperSelenium
+                participant Driver as WebDriver
+                participant Web as Cdiscount Website
+                participant CSV as CSVWriterRich
+                participant FS as File System
+
+                Admin->>Main: Run scraping script
+                activate Main
+                Main->>Scraper: new CdiscountScrapperSelenium
+                activate Scraper
+                Scraper->>Driver: Initialize WebDriver
+                activate Driver
+                Driver-->>Scraper: driver instance
+                deactivate Driver
+
+                loop For each category URL
+                Main->>Scraper: scrape categoryURL
+                Scraper->>Driver: get categoryURL
+                activate Driver
+                Driver->>Web: HTTP GET Request
+                activate Web
+                Web-->>Driver: HTML Page
+                deactivate Web
+                Driver-->>Scraper: Page loaded
+                deactivate Driver
+
+                loop For each product on page
+                Scraper->>Driver: findElements productSelector
+                activate Driver
+                Driver-->>Scraper: WebElement List
+                deactivate Driver
+
+                Scraper->>Scraper: extractProductDetails
+
+                Scraper->>Driver: click product link
+                activate Driver
+                Driver->>Web: Navigate to product page
+                activate Web
+                Web-->>Driver: Product page HTML
+                deactivate Web
+                Driver-->>Scraper: Product page loaded
+                deactivate Driver
+
+                Scraper->>Driver: findElements reviewSelector
+                activate Driver
+                Driver-->>Scraper: Review elements
+                deactivate Driver
+
+                Scraper->>Scraper: parseReviews
+                Scraper->>Scraper: create RichProductRecord
+
+                Scraper->>Driver: navigate back
+                end
+
+                Scraper-->>Main: RichProductRecord List
+                end
+
+                Main->>CSV: writeRichProductsToCSV
+                activate CSV
+                CSV->>FS: Write CSV file
+                activate FS
+                FS-->>CSV: File saved
+                deactivate FS
+                CSV-->>Main: Success
+                deactivate CSV
+
+                Main->>Scraper: close
+                Scraper->>Driver: quit
+                activate Driver
+                Driver-->>Scraper: Browser closed
+                deactivate Driver
+                deactivate Scraper
+
+                Main-->>Admin: Scraping complete
+                deactivate Main
+            </div>
+        </div>
+
+        <!-- Sequence 2: Image Downloading (Hybrid) -->
+        <div class="diagram-section">
+            <h2>2. Image Downloading Sequence</h2>
+            <div class="mermaid">
+                sequenceDiagram
+                autonumber
+                actor Admin as Administrator
+                participant ImageScraper as ImageScraper
+                participant FS as File System
+                participant HTTP as HTTP Client
+                participant Sel as Selenium (Fallback)
+                participant Web as Image URLs
+
+                Admin->>ImageScraper: Run image download script
+                activate ImageScraper
+
+                ImageScraper->>FS: Read CSV files
+                activate FS
+                FS-->>ImageScraper: Product data with image URLs
+                deactivate FS
+
+                loop For each unique image URL
+                ImageScraper->>HTTP: downloadHttp
+                activate HTTP
+                HTTP->>Web: HTTP GET Request
+                Web-->>HTTP: Response (bytes)
+                deactivate HTTP
+
+                alt Success (200 OK)
+                ImageScraper->>FS: Save image to Disk
+                else Blocked (403/503)
+                ImageScraper->>Sel: downloadSelenium fallback
+                activate Sel
+                Sel->>Web: Render image in Browser
+                Sel->>Sel: Capture Screenshot (bytes)
+                Sel-->>ImageScraper: Screenshot data
+                deactivate Sel
+                ImageScraper->>FS: Save image to Disk
+                end
+                end
+
+                ImageScraper-->>Admin: All images downloaded
+                deactivate ImageScraper
+            </div>
+        </div>
+
+        <!-- Sequence 3: Data Preprocessing -->
+        <div class="diagram-section">
+            <h2>3. Data Preprocessing Sequence</h2>
+            <div class="mermaid">
+                sequenceDiagram
+                autonumber
+                participant Main as PreprocessingMain
+                participant Cleaner as DataCleaner
+                participant Loader as DataLoader
+                participant FS as File System
+                participant Prod as PrepProduct
+                participant Rev as Review
+
+                Main->>Main: main
+                activate Main
+
+                Main->>Cleaner: processMultipleCSVs
+                activate Cleaner
+
+                loop For each CSV file
+                Cleaner->>Loader: loadCSV filepath
+                activate Loader
+                Loader->>FS: Read CSV file
+                FS-->>Loader: Raw CSV data
+                deactivate Loader
+
+                loop For each parsed row
+                Cleaner->>Prod: new PrepProduct
+                activate Prod
+                Prod-->>Cleaner: product instance
+                deactivate Prod
+
+                alt Review exists
+                Cleaner->>Rev: new Review
+                activate Rev
+                Rev-->>Cleaner: review instance
+                deactivate Rev
+                Cleaner->>Prod: addReview
+                end
+                end
+                end
+
+                Cleaner-->>Main: Product List
+                deactivate Cleaner
+
+                Main->>FS: saveToTextFile (statistics)
+                deactivate Main
+            </div>
+        </div>
+
+        <!-- Sequence 4: Recommendation Engine -->
+        <div class="diagram-section">
+            <h2>4. Product Recommendation Sequence</h2>
+            <div class="mermaid">
+                sequenceDiagram
+                autonumber
+                actor User
+                participant UI as MainFrame
+                participant Engine as RecommendationEngine
+                participant Vectorizer as TFIDFVectorizer
+                participant Results as ResultsPanel
+                participant Card as ProductCard
+                participant Cache as ImageCache
+
+                User->>UI: Launch application
+                activate UI
+                UI->>UI: loadDataAsync
+
+                UI->>Engine: new RecommendationEngine
+                activate Engine
+                Engine->>Vectorizer: new TFIDFVectorizer
+                Engine->>Engine: trainModel (fit corpus)
+                Engine-->>UI: Engine ready
+                deactivate Engine
+
+                User->>UI: Enter search query & click search
+                activate UI
+                UI->>Engine: getRecommendations(query, filters)
+                activate Engine
+
+                Engine->>Vectorizer: transform query
+                activate Vectorizer
+                Vectorizer-->>Engine: queryVector
+                deactivate Vectorizer
+
+                loop For each filtered product
+                Engine->>Engine: calculateCosineSimilarity
+                Engine->>Engine: addSubstringBonus
+                Engine->>Engine: calculateCompositeScore (Weighted)
+                end
+
+                Engine->>Engine: Sort & Limit
+                Engine-->>UI: RecommendationResult List
+                deactivate Engine
+
+                UI->>Results: showResults
+                activate Results
+
+                loop For each result
+                Results->>Card: new ProductCard
+                activate Card
+                Card->>Cache: getImage(url)
+                activate Cache
+                Cache-->>Card: ImageIcon (Cached/New)
+                deactivate Cache
+                Card-->>Results: JPanel card
+                deactivate Card
+                end
+
+                UI-->>User: Display complete
+                deactivate Results
+                deactivate UI
+
+                User->>Results: View product cards
+                activate Results
+                Results-->>User: Display products with images and ratings
+                deactivate Results
+            </div>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            sequence: {
+                diagramMarginX: 50,
+                diagramMarginY: 10,
+                actorMargin: 50,
+                width: 150,
+                height: 65,
+                boxMargin: 10,
+                boxTextMargin: 5,
+                noteMargin: 10,
+                messageMargin: 35
+            }
+        });
+    </script>
+</body>
+
+</html>

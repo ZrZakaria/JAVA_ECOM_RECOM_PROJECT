@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Diagram - Product Recommendation System</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #FA8BFF 0%, #2BD2FF 52%, #2BFF88 90%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔄 Activity Diagram - Module Workflow</h1>
+        <p class="description">Partitioned by Active Modules</p>
+
+        <div class="mermaid">
+            flowchart TB
+
+            %% Define Styles directly for distinct coloring of subgraphs
+            classDef startEnd fill:#4CAF50,stroke:#2E7D32,stroke-width:3px,color:#fff
+            classDef decision fill:#FFC107,stroke:#F57C00,stroke-width:2px
+
+            Start([Start System])
+            End([End])
+            class Start,End startEnd
+
+            %% ---------------------------------------------------------
+            %% DATA COLLECTION PHASE
+            %% ---------------------------------------------------------
+            subgraph DataScraping [1. Data Collection Module]
+            direction TB
+            InitApp[Initialize App]
+            CheckData{Data Exists?}
+            StartDataScraping[Start Scraping]
+            InitDriver[Init Selenium]
+            LoadURLs[Load Categories]
+            LoopPages{More Pages?}
+            NavigatePage[Navigate Phase]
+            ExtractProducts[Extract Elements]
+            LoopProducts{More Products?}
+            NavToProduct[Navigate to Product Page]
+            ExtractDetails[Extract Description & Reviews]
+            CreateRecord[Create Rich Record]
+            SaveCSV[Save to CSV]
+
+            InitApp --> CheckData
+            CheckData -->|No| StartDataScraping
+            StartDataScraping --> InitDriver
+            InitDriver --> LoadURLs
+            LoadURLs --> LoopPages
+            LoopPages -->|Yes| NavigatePage --> ExtractProducts
+            ExtractProducts --> LoopProducts
+            LoopProducts -->|Yes| NavToProduct --> ExtractDetails --> CreateRecord --> LoopProducts
+            LoopProducts -->|No| LoopPages
+            LoopPages -->|No| SaveCSV
+            end
+
+            %% ---------------------------------------------------------
+            %% IMAGE COLLECTION PHASE
+            %% ---------------------------------------------------------
+            subgraph ImageScraping [2. Image Collection Module]
+            direction TB
+            StartImageScraping[Start Image Scraper]
+            ReadImages[Read Image URLs]
+            LoopImages{More Images?}
+            TryHTTP[Try HTTP Download]
+            HTTPSuccess{Success?}
+            SelDownload[Selenium Fallback]
+            SaveImg[Save to Disk]
+            ImagesReady[Images Ready]
+
+            StartImageScraping --> ReadImages
+            ReadImages --> LoopImages
+            LoopImages -->|Yes| TryHTTP --> HTTPSuccess
+            HTTPSuccess -->|Yes| SaveImg
+            HTTPSuccess -->|No| SelDownload --> SaveImg
+            SaveImg --> LoopImages
+            LoopImages -->|No| ImagesReady
+            end
+
+            %% ---------------------------------------------------------
+            %% PREPROCESSING PHASE
+            %% ---------------------------------------------------------
+            subgraph Preprocessing [3. Data Preprocessing Module]
+            direction TB
+            LoadData[Load Raw Data]
+            Preprocess[Start Preprocessing]
+            ProcessRow[Process Row]
+            GroupByID{Group?}
+            GenerateID[Generate ID]
+            CleanText[Clean Text]
+            DataCleaned[Data Cleaned]
+
+            LoadData --> Preprocess
+            Preprocess --> ProcessRow
+            ProcessRow --> GenerateID --> GroupByID
+            GroupByID -->|No| CleanText
+            GroupByID -->|Yes| CleanText
+            CleanText --> DataCleaned
+            end
+
+            %% ---------------------------------------------------------
+            %% RECOMMENDATION ENGINE
+            %% ---------------------------------------------------------
+            subgraph Recommendation [4. Recommendation Engine]
+            direction TB
+            TrainModel[Train Model]
+            BuildVocab[Build Vocab]
+            VectorizeAll[Vectorize Products]
+            ModelReady[Model Ready]
+
+            TrainModel --> BuildVocab --> VectorizeAll --> ModelReady
+            end
+
+            %% ---------------------------------------------------------
+            %% USER INTERFACE
+            %% ---------------------------------------------------------
+            subgraph UI [5. User Interface Module]
+            direction TB
+            LaunchUI[Launch UI]
+            ShowFrame[Display Main Frame]
+            WaitInput[Wait Input]
+            UserAction{User Action?}
+
+            Search[Search & Filter]
+            CalcSim[Calculate Similarity]
+            Display[Display Results]
+
+            DetailView[Show Details]
+            Wishlist[Wishlist Toggle]
+            Theme[Theme Toggle]
+            Compare[Compare Products]
+
+            LaunchUI --> ShowFrame --> WaitInput --> UserAction
+
+            UserAction -->|Search| Search --> CalcSim --> Display --> WaitInput
+            UserAction -->|Details| DetailView --> WaitInput
+            UserAction -->|Wishlist| Wishlist --> WaitInput
+            UserAction -->|Theme| Theme --> WaitInput
+            UserAction -->|Compare| Compare --> WaitInput
+            end
+
+            %% ---------------------------------------------------------
+            %% GLOBAL CONNECTIONS
+            %% ---------------------------------------------------------
+
+            Start --> InitApp
+            CheckData -->|Yes| LoadData
+            SaveCSV --> StartImageScraping
+            ImagesReady --> LoadData
+            DataCleaned --> TrainModel
+            ModelReady --> LaunchUI
+
+            UserAction -->|Exit| End
+
+            %% Apply active classes only
+            class CheckData,LoopPages,LoopProducts,LoopImages,HTTPSuccess,GroupByID,UserAction decision
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                curve: 'basis',
+                padding: 15
+            }
+        });
+    </script>
+</body>
+
+</html>

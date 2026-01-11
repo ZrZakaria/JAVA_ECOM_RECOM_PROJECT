@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Use Case Diagram - Product Recommendation System</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>👤 Use Case Diagram - Product Recommendation System</h1>
+        <p class="description">Actor-Centric View with Classic UML Stick Figures</p>
+
+        <div class="mermaid">
+            graph LR
+
+            %% --- Actors ---
+            %% User & Admin use the local "actor.svg" standard UML stick figure
+            User( <img src='actor.svg' width='40' /><br><b>User</b> )
+            Admin( <img src='actor.svg' width='40' /><br><b>Administrator</b> )
+
+            %% System uses a Server icon from Flaticon (or local if needed, but keeping stable URL for now)
+            System( <img src='https://cdn-icons-png.flaticon.com/512/3208/3208726.png' width='40' /><br><b>System</b> )
+
+            %% --- Group 1: User Interactions (Green) ---
+            subgraph UserZone [User Interactions]
+            direction TB
+            UC18[Search Products]
+            UC19[Apply Price Filters]
+            UC20[Select Category]
+            UC21[View Product Cards]
+            UC22[See Product Details]
+            UC23[View Product Images]
+            UC24[See Ratings and Reviews]
+            UC27[Toggle UI Theme]
+            UC28[Manage Wishlist]
+            UC29[Compare Products]
+            end
+
+            %% --- Group 2: Admin Operations (Orange) ---
+            subgraph AdminZone [Admin Operations]
+            direction TB
+            UC1[Trigger Cdiscount Scraping]
+            UC5[Monitor CSV Export]
+            UC7[Review Data Cleaning]
+            end
+
+            %% --- Group 3: System Processes (Blue) ---
+            subgraph SystemZone [System Processes]
+            direction TB
+            UC6[Auto-Load CSV Data]
+            UC12[Train TF-IDF Model]
+            UC25[Auto-Download Images]
+
+            %% Hidden dependency nodes
+            UC3[Extract Details]
+            UC26[Cache Images]
+            UC17[Generate Recommendations]
+            end
+
+            %% --- External Entities ---
+            Cdiscount[/Cdiscount Website/]
+            FileSystem[(CSV Files)]
+
+            %% ==========================================
+            %% DEFINING RELATIONSHIPS & STYLING ARROWS
+            %% ==========================================
+
+            %% 1. User Relationships (Green Arrows: Indexes 0-9)
+            User --> UC18
+            User --> UC19
+            User --> UC20
+            User --> UC21
+            User --> UC22
+            User --> UC23
+            User --> UC24
+            User --> UC27
+            User --> UC28
+            User --> UC29
+
+            %% 2. Admin Relationships (Orange Arrows: Indexes 10-12)
+            Admin --> UC1
+            Admin --> UC5
+            Admin --> UC7
+
+            %% 3. System Relationships (Blue Arrows: Indexes 13-16)
+            System --> UC1
+            System --> UC6
+            System --> UC12
+            System --> UC25
+
+            %% 4. Internal Dependencies (Gray/Default)
+            UC1 --> UC3
+            UC25 --> UC26
+            UC18 -.->|includes| UC17
+            UC19 -.->|extends| UC18
+            UC20 -.->|extends| UC18
+
+            %% External Links
+            UC1 -.-> Cdiscount
+            UC5 -.-> FileSystem
+            UC6 -.-> FileSystem
+
+            %% --- Styling Classes ---
+            classDef userUC fill:#E8F5E9,stroke:#2E7D32,stroke-width:1px
+            classDef adminUC fill:#FFF3E0,stroke:#E65100,stroke-width:1px
+            classDef systemUC fill:#E3F2FD,stroke:#0D47A1,stroke-width:1px
+            classDef external fill:#FFEBEE,stroke:#C62828,stroke-width:1px
+
+            %% Apply Classes
+            class UC18,UC19,UC20,UC21,UC22,UC23,UC24,UC27,UC28,UC29 userUC
+            class UC1,UC5,UC7 adminUC
+            class UC6,UC12,UC25,UC3,UC26,UC17 systemUC
+            class Cdiscount,FileSystem external
+
+            %% --- Arrow Coloring ---
+            %% User Links (0-9) -> Green
+            linkStyle 0,1,2,3,4,5,6,7,8,9 stroke:#4CAF50,stroke-width:2px;
+
+            %% Admin Links (10-12) -> Orange
+            linkStyle 10,11,12 stroke:#FF9800,stroke-width:2px;
+
+            %% System Links (13-16) -> Blue
+            linkStyle 13,14,15,16 stroke:#2196F3,stroke-width:2px;
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default'
+        });
+    </script>
+</body>
+
+</html>

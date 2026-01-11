@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Diagram - Product Recommendation System</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        p {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        /* Legend styling */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .box {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🏗️ Class Diagram - Product Recommendation System</h1>
+    <p>Complete architecture with color-coded modules</p>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="box" style="background:#E3F2FD; border-color:#2196F3"></div>Data Scraper
+        </div>
+        <div class="legend-item">
+            <div class="box" style="background:#E0F7FA; border-color:#00BCD4"></div>Image Scraper
+        </div>
+        <div class="legend-item">
+            <div class="box" style="background:#F3E5F5; border-color:#9C27B0"></div>Preprocessing
+        </div>
+        <div class="legend-item">
+            <div class="box" style="background:#FFF3E0; border-color:#FF9800"></div>Recommendation
+        </div>
+        <div class="legend-item">
+            <div class="box" style="background:#E8F5E9; border-color:#4CAF50"></div>User Interface
+        </div>
+    </div>
+
+    <div class="mermaid">
+        classDiagram
+        direction TB
+
+        %% --- Data Scraper Module ---
+        class CdiscountScrapperSelenium {
+        -driver WebDriver
+        +scrape(searchUrl String) List
+        +close() void
+        -initDriver() void
+        -fetchDescription(productUrl String) String
+        -fetchReviews(productUrl String) List
+        }
+
+        class RichProductRecord {
+        -title String
+        -price String
+        -link String
+        -image String
+        -description String
+        -reviewAuthor String
+        -reviewRating String
+        -reviewTitle String
+        -reviewBody String
+        -reviewDate String
+        +getters()
+        }
+
+        class CSVWriterRich {
+        +writeRichProductsToCSV(rows filename) void
+        }
+
+        class ScraperMain {
+        +main(args String[]) void
+        }
+
+        %% --- Image Scraper Module ---
+        class ImageScraper {
+        -httpClient HttpClient
+        -executor ExecutorService
+        +run() void
+        +main(args String[]) void
+        -processImage(url productId index total) void
+        -downloadHttp(url file) boolean
+        -downloadSelenium(url file) boolean
+        }
+
+        %% --- Preprocessing Module ---
+        class PrepProduct {
+        -id String
+        -title String
+        -price double
+        -link String
+        -imageUrl String
+        -description String
+        -category String
+        -reviews List
+        -avgRating double
+        +addReview(review Review) void
+        +getters()
+        }
+
+        class Review {
+        -author String
+        -rating double
+        -title String
+        -body String
+        -date LocalDate
+        +getters()
+        }
+
+        class DataLoader {
+        +loadCSV(filepath String) List
+        +extractCategory(filename String) String
+        +generateId(url String) String
+        +parsePrice(priceStr String) double
+        +parseRating(ratingStr String) double
+        }
+
+        class DataCleaner {
+        +processCSV(filepath String) List
+        +processMultipleCSVs(paths String[]) List
+        +cleanText(text String) String
+        }
+
+        class PreprocessingMain {
+        +main(args String[]) void
+        }
+
+        %% --- Recommendation Module ---
+        class RecommendationEngine {
+        -allProducts List
+        -stats DatasetStats
+        -vectorizer TFIDFVectorizer
+        -productVectors Map
+        -modelReady boolean
+        +RecommendationEngine(products)
+        -trainModel() void
+        +getRecommendations(query minPrice maxPrice category maxResults) List
+        -calculateCosineSimilarity(v1 v2) double
+        -calculateCompositeScore(product simScore) double
+        +getCategoryStats() Map
+        }
+
+        class TFIDFVectorizer {
+        -vocabulary Map
+        -idfWeights Map
+        -vocabSize int
+        -STOP_WORDS Set
+        +fit(documents List) void
+        +transform(text String) double[]
+        -tokenize(text String) List
+        }
+
+        class DatasetStats {
+        +minPrice double
+        +maxPrice double
+        +maxReviews int
+        +DatasetStats(products)
+        }
+
+        class RecommendationResult {
+        -product PrepProduct
+        -score double
+        -similarityScore double
+        +RecommendationResult(product score similarity)
+        +getProduct() PrepProduct
+        +getScore() double
+        +compareTo(other) int
+        }
+
+        %% --- UI Module ---
+        class MainFrame {
+        -engine RecommendationEngine
+        -searchPanel SearchPanel
+        -resultsPanel ResultsPanel
+        -comparisonPanel ComparisonPanel
+        -wishlistPanel WishlistPanel
+        +MainFrame()
+        -initializeComponents() void
+        -loadDataAsync() void
+        -performSearch() void
+        }
+
+        class SearchPanel {
+        -searchField JTextField
+        -minPriceField JTextField
+        -categoryCombo JComboBox
+        -searchButton JButton
+        +getSearchQuery() String
+        +getMinPrice() double
+        +getMaxPrice() double
+        +getSelectedCategory() String
+        }
+
+        class ResultsPanel {
+        -resultsContainer JPanel
+        -scrollPane JScrollPane
+        +showResults(results List) void
+        +showLoading() void
+        +showError(message String) void
+        -createProductCard(result) JPanel
+        }
+
+        class ComparisonPanel {
+        -comparisonManager ComparisonManager
+        +updateView()
+        +refreshTheme()
+        }
+
+        class WishlistPanel {
+        -wishlistManager WishlistManager
+        +updateView()
+        +refreshTheme()
+        }
+
+        class ProductCard {
+        -product PrepProduct
+        -score double
+        -imageLabel JLabel
+        +ProductCard(result)
+        -loadImage() void
+        -createStars(rating) String
+        -formatPrice(price) String
+        }
+
+        class ImageCache {
+        -cache Map
+        -MAX_CACHE_SIZE int
+        +getImage(url String) ImageIcon
+        -downloadImage(url String) ImageIcon
+        +clearCache() void
+        }
+
+        class ComparisonManager {
+        -selectedProducts List
+        +addProduct(product)
+        +removeProduct(product)
+        +compare()
+        }
+
+        class WishlistManager {
+        -wishlistItems List
+        +addToWishlist(product)
+        +removeFromWishlist(product)
+        +saveWishlist()
+        +loadWishlist()
+        }
+
+        class UIStyles {
+        +FONT_LARGE Font
+        +COLOR_PRIMARY Color
+        +COLOR_BACKGROUND Color
+        +createLabel(text font color) JLabel
+        +createButton(text) JButton
+        +addThemeListener(listener) void
+        }
+
+        %% Relationships
+        CdiscountScrapperSelenium --> RichProductRecord : creates
+        ScraperMain --> CdiscountScrapperSelenium : uses
+        ScraperMain --> CSVWriterRich : uses
+        CSVWriterRich --> RichProductRecord : writes
+        ImageScraper ..> RichProductRecord : processes output
+
+        PrepProduct --> Review : contains
+        DataCleaner --> DataLoader : uses
+        DataCleaner --> PrepProduct : creates
+        DataCleaner --> Review : creates
+        PreprocessingMain --> DataCleaner : uses
+        PreprocessingMain --> PrepProduct : processes
+
+        RecommendationEngine --> TFIDFVectorizer : uses
+        RecommendationEngine --> PrepProduct : uses
+        RecommendationEngine --> RecommendationResult : creates
+        RecommendationEngine --> DatasetStats : inner
+        RecommendationResult --> PrepProduct : refs
+
+        MainFrame --> SearchPanel : contains
+        MainFrame --> ResultsPanel : contains
+        MainFrame --> ComparisonPanel : contains
+        MainFrame --> WishlistPanel : contains
+        MainFrame --> RecommendationEngine : uses
+        MainFrame --> DataCleaner : uses
+
+        ResultsPanel --> ProductCard : creates
+        ProductCard --> PrepProduct : displays
+        ProductCard --> ImageCache : uses
+
+        ComparisonPanel --> ComparisonManager : uses
+        WishlistPanel --> WishlistManager : uses
+
+        SearchPanel --> UIStyles : uses
+        ResultsPanel --> UIStyles : uses
+        ProductCard --> UIStyles : uses
+
+        %% --- Explicit Styling ---
+        style CdiscountScrapperSelenium fill:#E3F2FD,stroke:#2196F3,stroke-width:2px
+        style RichProductRecord fill:#E3F2FD,stroke:#2196F3,stroke-width:2px
+        style CSVWriterRich fill:#E3F2FD,stroke:#2196F3,stroke-width:2px
+        style ScraperMain fill:#E3F2FD,stroke:#2196F3,stroke-width:2px
+
+        style ImageScraper fill:#E0F7FA,stroke:#00BCD4,stroke-width:2px
+
+        style PrepProduct fill:#F3E5F5,stroke:#9C27B0,stroke-width:2px
+        style Review fill:#F3E5F5,stroke:#9C27B0,stroke-width:2px
+        style DataLoader fill:#F3E5F5,stroke:#9C27B0,stroke-width:2px
+        style DataCleaner fill:#F3E5F5,stroke:#9C27B0,stroke-width:2px
+        style PreprocessingMain fill:#F3E5F5,stroke:#9C27B0,stroke-width:2px
+
+        style RecommendationEngine fill:#FFF3E0,stroke:#FF9800,stroke-width:2px
+        style TFIDFVectorizer fill:#FFF3E0,stroke:#FF9800,stroke-width:2px
+        style DatasetStats fill:#FFF3E0,stroke:#FF9800,stroke-width:2px
+        style RecommendationResult fill:#FFF3E0,stroke:#FF9800,stroke-width:2px
+
+        style MainFrame fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+        style SearchPanel fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+        style ResultsPanel fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+        style ComparisonPanel fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+        style WishlistPanel fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+        style ProductCard fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+        style ImageCache fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+        style ComparisonManager fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+        style WishlistManager fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+        style UIStyles fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px
+
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+
+</html>
