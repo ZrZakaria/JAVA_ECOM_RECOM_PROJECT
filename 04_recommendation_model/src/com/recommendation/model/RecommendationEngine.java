@@ -4,38 +4,42 @@ import com.recommendation.preprocessing.Product;
 import java.util.*;
 
 /**
- * Main recommendation engine.
- * Processes search queries and returns ranked product recommendations.
- * 
- * UPGRADE: Now uses TF-IDF Machine Learning for text similarity.
- * CONSOLIDATED: Now includes Similarity and Ranking logic directly.
+ * Main recommendation engine implementation.
+ * Inherits from AbstractRecommendationEngine to demonstrate inheritance.
  */
-public class RecommendationEngine {
+public class RecommendationEngine extends AbstractRecommendationEngine {
 
-    private List<Product> allProducts;
     private DatasetStats stats;
 
     // ML Components
     private TFIDFVectorizer vectorizer;
+    private NaiveBayesClassifier sentimentClassifier; // UPDATED: AI Classifier
     private Map<String, double[]> productVectors;
+    private Map<String, Double> sentimentCache;
     private boolean modelReady = false;
 
     // Scoring weights (must sum to 1.0)
-    private static final double WEIGHT_SIMILARITY = 0.40;
-    private static final double WEIGHT_RATING = 0.30;
+    private static final double WEIGHT_SIMILARITY = 0.35;
+    private static final double WEIGHT_RATING = 0.25;
     private static final double WEIGHT_REVIEWS = 0.15;
     private static final double WEIGHT_PRICE = 0.15;
+    private static final double WEIGHT_SENTIMENT = 0.10;
 
     public RecommendationEngine(List<Product> products) {
-        this.allProducts = products;
+        super(products); // Use parent constructor
         this.stats = new DatasetStats(products);
+        this.sentimentClassifier = new NaiveBayesClassifier(); // Init AI
         trainModel();
     }
 
-    private void trainModel() {
-        System.out.println("Initializing Machine Learning Model...");
+    @Override
+    protected void trainModel() {
+        if (allProducts == null || allProducts.isEmpty())
+            return;
+        System.out.println("Initializing Machine Learning Models (TF-IDF + Naive Bayes)...");
         this.vectorizer = new TFIDFVectorizer();
         this.productVectors = new HashMap<>();
+        this.sentimentCache = new HashMap<>();
 
         List<String> corpus = new ArrayList<>();
         for (Product p : allProducts) {
@@ -44,12 +48,28 @@ public class RecommendationEngine {
 
         vectorizer.fit(corpus);
 
+        // Vectorization & Sentiment Analysis Loop
+        System.out.println("Running AI Sentiment Analysis on Reviews...");
         for (Product p : allProducts) {
+            // 1. Vectorize Content
             productVectors.put(p.getId(), vectorizer.transform(p.getTitle() + " " + p.getDescription()));
+
+            // 2. Analyze Sentiment (Probabilistic)
+            double totalSentiment = 0.0;
+            if (p.getReviews().isEmpty()) {
+                totalSentiment = 0.0;
+            } else {
+                for (com.recommendation.preprocessing.Review r : p.getReviews()) {
+                    totalSentiment += sentimentClassifier.predict(r.getBody());
+                }
+                totalSentiment /= p.getReviews().size(); // Average Probability
+            }
+            sentimentCache.put(p.getId(), totalSentiment);
         }
 
         this.modelReady = true;
-        System.out.println("Model trained and products vectorized.");
+        System.out.println("Models trained. TF-IDF Vectors: " + productVectors.size() + ", Sentiment Scores: "
+                + sentimentCache.size());
     }
 
     public List<RecommendationResult> getRecommendations(String query, double minPrice, double maxPrice,
@@ -65,6 +85,9 @@ public class RecommendationEngine {
         double[] queryVector = vectorizer.transform(query);
         String[] queryKeywords = query.toLowerCase().split("\\s+");
 
+        // Create a list of scored items using our custom Generic class
+        List<ScoredItem<Product>> scoredItems = new ArrayList<>();
+
         for (Product product : filtered) {
             double[] pVector = productVectors.get(product.getId());
             double similarityScore = calculateCosineSimilarity(queryVector, pVector);
@@ -73,7 +96,6 @@ public class RecommendationEngine {
             similarityScore += substringBonus(query, product.getTitle());
             similarityScore += categoryBonus(query, product.getCategory());
 
-            // Fuzzy keyword matching
             String productText = (product.getTitle() + " " + product.getDescription()).toLowerCase();
             int matchCount = 0;
             boolean hasValidKeywords = false;
@@ -121,8 +143,14 @@ public class RecommendationEngine {
         double reviewScore = Math.min(p.getReviewCount() / 100.0, 1.0);
         double priceScore = 1.0 - Math.min(p.getPrice() / 1000.0, 1.0);
 
+        // Retrieve cached sentiment (Step 4 - Runtime)
+        double sentimentScore = sentimentCache.getOrDefault(p.getId(), 0.0);
+        // Normalize sentiment (-1 to 1) to (0 to 1) for scoring
+        double normalizedSentiment = (sentimentScore + 1.0) / 2.0;
+
         return (simScore * WEIGHT_SIMILARITY) + (ratingScore * WEIGHT_RATING) +
-                (reviewScore * WEIGHT_REVIEWS) + (priceScore * WEIGHT_PRICE);
+                (reviewScore * WEIGHT_REVIEWS) + (priceScore * WEIGHT_PRICE) +
+                (normalizedSentiment * WEIGHT_SENTIMENT);
     }
 
     private List<Product> filterProducts(double minPrice, double maxPrice, String category) {

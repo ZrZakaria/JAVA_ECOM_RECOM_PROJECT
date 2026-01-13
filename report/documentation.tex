@@ -1,0 +1,339 @@
+\documentclass[12pt, a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{titlesec}
+\usepackage{amsmath} % Added for mathematical formulas
+\usepackage{amssymb} % Added for math symbols
+
+\geometry{margin=1in}
+
+% Code listing style
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\title{
+    \textbf{Java E-Commerce Recommendation Project} \\
+    \Large Step 4 and Step 6 Documentation \\
+    \large Detailed Code Analysis and Logic Explanation
+}
+\author{Antigravity AI}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\chapter{Step 4: Recommendation Model (Deep Dive)}
+
+This chapter provides a comprehensive technical breakdown of the Recommendation Engine. This system is a **Hybrid Content-Based Recommender** enhanced with **Probabilistic Sentiment Analysis**, designed to solve the problem of information overload in e-commerce.
+
+\section{System Architecture}
+The recommendation pipeline consists of three distinct mathematical components that function in unison:
+\begin{enumerate}
+    \item \textbf{Text Vectorization (TF-IDF)}: Converts unstructured product text into a structured Numerical Vector Space.
+    \item \textbf{Sentiment Classification (Naive Bayes)}: A probabilistic AI that determines the qualitative quality of products based on user reviews.
+    \item \textbf{Composite Scoring Engine}: A ranking algorithm that aggregates vector similarity, sentiment probability, and product metadata into a final score.
+\end{enumerate}
+
+\section{Component 1: Text Vectorization (TF-IDF)}
+\textbf{Class:} \texttt{TFIDFVectorizer.java}
+
+To compare products mathematically, we must first convert their textual titles and descriptions into numbers. We use the **Vector Space Model (VSM)**.
+
+\subsection{Mathematical Theory}
+The weight of a term $t$ in a document $d$ is calculated as the product of its \textit{Term Frequency} and \textit{Inverse Document Frequency}.
+
+\subsubsection{1. Term Frequency (TF)}
+Measures how often a word appears in a specific product description.
+\[
+TF(t, d) = \frac{\text{count}(t, d)}{\text{total words in } d}
+\]
+\textit{Rationale}: If "OLED" appears frequently in a description, it is likely significant to that product.
+
+\subsubsection{2. Inverse Document Frequency (IDF)}
+Measures how informative a word is across the entire catalog.
+\[
+IDF(t) = \log\left(\frac{N}{1 + DF(t)}\right)
+\]
+Where:
+\begin{itemize}
+    \item $N$: Total number of products (documents).
+    \item $DF(t)$: Number of products containing term $t$.
+\end{itemize}
+\textit{Rationale}: Common words like "the", "and", or "with" appear in almost all documents ($DF(t) \approx N$), resulting in an IDF near 0. Rare words like "GeForce" or "4K" have a high IDF.
+
+\subsubsection{3. Final Vector Calculation}
+The vector representation $V_d$ of a product is an array where each dimension corresponds to a word in the vocabulary:
+\[
+V_d = [TFIDF(t_1, d), TFIDF(t_2, d), ... , TFIDF(t_n, d)]
+\]
+
+\subsection{Code Implementation}
+\begin{lstlisting}[language=Java]
+// Code snippet from TFIDFVectorizer.java
+public double[] transform(String text) {
+    List<String> tokens = tokenize(text);
+    double[] vector = new double[vocabSize];
+
+    for (String term : tokens) {
+        if (vocabulary.containsKey(term)) {
+            int index = vocabulary.get(term);
+            double tf = (double) countOccurrences(term, tokens) / tokens.size();
+            double idf = idfWeights.get(term);
+            vector[index] = tf * idf; // The core formula
+        }
+    }
+    return vector;
+}
+\end{lstlisting}
+
+\section{Component 2: Sentiment Analysis (Naive Bayes)}
+\textbf{Class:} \texttt{NaiveBayesClassifier.java}
+
+While typical recommenders only look at product features, our system analyzes the \textit{human element} using a **Supervised Machine Learning** algorithm: Multinomial Naive Bayes.
+
+\subsection{Mathematical Theory}
+We calculate the probability that a given review $D$ belongs to a class $C$ (Positive or Negative) using **Bayes' Theorem**:
+
+\[
+P(C|D) = \frac{P(D|C) \cdot P(C)}{P(D)}
+\]
+
+Since the denominator $P(D)$ is constant for comparison, we maximize the numerator. We assume independence between words ("Naive" assumption):
+
+\[
+P(C|D) \propto P(C) \cdot \prod_{i=1}^{n} P(w_i | C)
+\]
+
+\subsubsection{Log-Likelihood Optimization}
+To prevent floating-point underflow (multiplying many small probabilities results in 0), we sum the logarithms:
+
+\[
+\log P(C|D) \propto \log P(C) + \sum_{i=1}^{n} \log P(w_i | C)
+\]
+
+\subsubsection{Laplace Smoothing}
+To handle the "Zero Frequency Problem" (where a new word has 0 probability and zeros-out the entire calculation), we use Add-One Smoothing:
+\[
+P(w | C) = \frac{\text{count}(w, C) + 1}{\text{count}(All Words, C) + |Vocabulary|}
+\]
+
+\subsection{Seed Data Training (Cold Start)}
+Since the application connects to CSVs without labeled sentiment data, we solve the **Cold Start Problem** by pre-training the classifier with a "Seed Dataset" in memory during initialization.
+
+\begin{lstlisting}[language=Java]
+// Code snippet from NaiveBayesClassifier.java constructor
+private void trainWithSeedData() {
+    // Teaching the AI what "Positive" looks like
+    train("The battery life is amazing", true); 
+    train("Fast shipping and generic quality", true);
+    
+    // Teaching the AI what "Negative" looks like
+    train("Terrible battery life drains fast", false);
+    train("Broken screen and bad service", false);
+}
+\end{lstlisting}
+
+\section{Component 3: The Recommendation Engine}
+\textbf{Class:} \texttt{RecommendationEngine.java}
+
+This class acts as the orchestrator. It orchestrates the Training Phase and the Inference (Search) Phase.
+
+\subsection{Phase 1: Startup \& Training}
+When the application launches, the \texttt{trainModel()} method performs the following heavy-lifting:
+\begin{enumerate}
+    \item **Corpus Construction**: Aggregates all product titles and descriptions.
+    \item **Vocabulary Learning**: Runs \texttt{vectorizer.fit()} to calculate IDF weights.
+    \item **Vector Caching**: Pre-calculates the TF-IDF vector for every product and stores it in memory (`productVectors` Map).
+    \item **Sentiment Scoring**: Iterates through all reviews, runs the Naive Bayes prediction on each, averages the result, and caches it (`sentimentCache` Map).
+\end{enumerate}
+
+\subsection{Phase 2: Relevance Calculation}
+When a user searches for a query $Q$, the engine performs **Cosine Similarity** between the Query Vector $V_q$ and Product Vector $V_p$:
+
+\[
+\text{Similarity}(Q, P) = \cos(\theta) = \frac{V_q \cdot V_p}{||V_q|| \cdot ||V_p||} = \frac{\sum_{i} A_i B_i}{\sqrt{\sum A_i^2} \sqrt{\sum B_i^2}}
+\]
+
+This results in a score between 0 (No match) and 1 (Perfect semantic match).
+
+\subsection{Phase 3: Composite Scoring (Ranking)}
+The final score determines the ranking. It is a weighted sum designed to balance relevance, quality, and popularity:
+
+\begin{align*}
+\text{Score} &= (\text{Similarity} \times 0.35) \\
+             &+ (\text{Normalized Rating} \times 0.25) \\
+             &+ (\text{Normalized Reviews} \times 0.15) \\
+             &+ (\text{Inverse Price} \times 0.15) \\
+             &+ (\text{Sentiment Probability} \times 0.10)
+\end{align*}
+
+\begin{lstlisting}[language=Java]
+// Implementation in RecommendationEngine.java
+private double calculateCompositeScore(Product p, double simScore) {
+    double ratingScore = p.getAvgRating() / 5.0; // 0.0 to 1.0
+    double sentimentScore = (sentimentCache.get(p.getId()) + 1.0) / 2.0; // Map -1..1 to 0..1
+    
+    return (simScore * WEIGHT_SIMILARITY) + 
+           (ratingScore * WEIGHT_RATING) +
+           (sentimentScore * WEIGHT_SENTIMENT) + ...;
+}
+\end{lstlisting}
+This formula ensures that a product which matches the query perfectly but has terrible AI-detected sentiment will be ranked lower than a slightly less relevant but highly praised product.
+
+
+\section{Data Model: RecommendationResult.java}
+
+A simple POJO (Plain Old Java Object) to hold the output data.
+
+\begin{lstlisting}[language=Java, firstnumber=8]
+public class RecommendationResult implements Serializable {
+    private String productId;
+    private String title;
+    private double score; // Composite recommendation score
+    private int rank; // Ranking position (1 = best)
+    // ... getters and setters ...
+    
+    public String getRankBadge() {
+        switch (rank) {
+            case 1: return "[1st] BEST";
+            case 2: return "[2nd]";
+            case 3: return "[3rd]";
+            default: return "#" + rank;
+        }
+    }
+}
+\end{lstlisting}
+
+\paragraph{Explanation}
+\begin{itemize}
+    \item Implements `Serializable` for potential network transmission or caching.
+    \item Stores both raw product data (`title`, `price`) and computed metadata (`score`, `rank`).
+    \item `getRankBadge()`: A UI-helper method that returns a medallion emoji for top 3 results, enhancing the user experience.
+\end{itemize}
+
+\section{Advanced OOP Architecture}
+This project adheres to professional software engineering principles by utilizing custom Abstraction and Generics.
+
+\subsection{Abstract Class: AbstractRecommendationEngine}
+Instead of a monolithic class, we use an **Abstract Base Class** to define the template for any future recommendation algorithms.
+\begin{itemize}
+    \item \textbf{Encapsulation}: Shared fields like `allProducts` are protected.
+    \item \textbf{Polymorphism}: Subclasses must provide their own implementation of `trainModel()`.
+\end{itemize}
+
+\subsection{Generic Class: ScoredItem<T>}
+To decouple the ranking logic from the `Product` model, we implemented a custom **Generic Wrapper**.
+\begin{lstlisting}[language=Java]
+public class ScoredItem<T> {
+    private T item;
+    private double score;
+    // ... Any type T can be ranked!
+}
+\end{lstlisting}
+\textbf{Benefit}: The engine can now rank *any* object type (Products, Advertisements, Users) using the same generic algorithm, proving high-level system flexibility.
+
+\chapter{Step 6: Tests}
+
+Quality assurance is handled via JUnit 5 tests. These ensure the logic remains correct as the codebase evolves.
+
+\section{Engine Tests: RecommendationEngineTest.java}
+
+\begin{lstlisting}[language=Java, firstnumber=14]
+public class RecommendationEngineTest {
+
+    private RecommendationEngine engine;
+    private List<Product> mockProducts;
+
+    @BeforeEach
+    public void setUp() {
+        mockProducts = Arrays.asList(
+                new Product("p1", "Samsung Galaxy S23", 800.0, ...),
+                new Product("p2", "iPhone 15 Pro", 1200.0, ...),
+                new Product("p3", "Dell XPS 13", 1500.0, ...)
+        );
+        engine = new RecommendationEngine(mockProducts);
+    }
+
+    @Test
+    public void testGetRecommendations() {
+        // Search for "Samsung"
+        List<RecommendationResult> results = engine.getRecommendations("Samsung", 0, 2000, "All Categories", 5);
+
+        assertFalse(results.isEmpty());
+        assertEquals("p1", results.get(0).getProductId());
+    }
+\end{lstlisting}
+
+\paragraph{Explanation}
+\begin{itemize}
+    \item \textbf{Mocking}: Instead of loading the real huge CSV file, we create a small list (`mockProducts`) with controlled data. This makes tests fast and deterministic.
+    \item \textbf{@BeforeEach}: Re-initializes the engine before every test to ensure a clean state.
+    \item \textbf{testGetRecommendations}: Verifies that searching for "Samsung" actually returns the Samsung product as the top result (`p1`), confirming the TF-IDF and scoring logic works.
+\end{itemize}
+
+\section{Vectorizer Tests: TFIDFVectorizerTest.java}
+
+\begin{lstlisting}[language=Java, firstnumber=38]
+    @Test
+    public void testTransform() {
+        List<String> docs = Arrays.asList("apple banana cherry", "banana cherry date");
+        vectorizer.fit(docs);
+
+        double[] vector = vectorizer.transform("apple banana");
+
+        assertNotNull(vector);
+        assertEquals(vectorizer.getVocabSize(), vector.length);
+    }
+\end{lstlisting}
+
+\paragraph{Explanation}
+\begin{itemize}
+    \item Verifies that the vectorizer can handle simple strings.
+    \item Ensures the output vector dimension matches the vocabulary size (which determines the Vector Space dimensions).
+\end{itemize}
+
+\section{Data Loader Tests: DataLoaderTest.java}
+
+\begin{lstlisting}[language=Java, firstnumber=10]
+    @Test
+    public void testParsePrice() {
+        assertEquals(99.99, DataLoader.parsePrice("99,99 €"), 0.001);
+        assertEquals(1250.0, DataLoader.parsePrice("1 250,00 €"), 0.001);
+    }
+\end{lstlisting}
+
+\paragraph{Explanation}
+\begin{itemize}
+    \item Tests the robustness of parsing logic. European formats often use commas (`,`) for decimals and spaces for thousands separators.
+    \item `assertEquals(expected, actual, delta)`: The delta `0.001` allows for tiny floating-point differences.
+\end{itemize}
+
+\end{document}

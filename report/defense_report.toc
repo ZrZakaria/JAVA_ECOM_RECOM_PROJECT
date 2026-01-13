@@ -1,0 +1,11 @@
+\contentsline {chapter}{\numberline {1}Project Overview}{2}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Innovation}{2}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Project Statistics}{2}{section.1.2}%
+\contentsline {chapter}{\numberline {2}Rubric Checklist: Java Fundamentals}{3}{chapter.2}%
+\contentsline {chapter}{\numberline {3}Step-by-Step Defense (Q\&A)}{4}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Step 1: Scrapping}{4}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Step 2 \& 3: Data \& Preprocessing}{4}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Step 4: Recommendation Model (CRITICAL)}{5}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Step 5: User Interface}{6}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Step 6: Testing}{6}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Implemented Improvements (AI Sentiment Analysis)}{7}{section.3.6}%
